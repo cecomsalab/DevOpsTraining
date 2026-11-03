@@ -79,9 +79,6 @@ The exercise consists of the following tasks:
     az login
     ```
 
-    > [!NOTE]
-    > On a computer without a browser, run **az login --use-device-code** and enter the displayed code at https://microsoft.com/devicelogin.
-
 2. If the account has access to several subscriptions, the command lists them. Select the course subscription by number, or run the following command with the subscription ID from the lab values:
 
     ```bash
@@ -113,12 +110,6 @@ The exercise consists of the following tasks:
     $LOCATION = "southcentralus"
     $TAGS     = @("course=devops", "lab=03", "owner=$STUDENT")
     ```
-
-    > [!NOTE]
-    > In Bash, **$TAGS** is used without quotes so that the shell splits it into three tags. PowerShell does not split strings, so **$TAGS** is an array with one item per tag.
-
-    > [!IMPORTANT]
-    > Variables exist only in the current terminal. If the terminal is closed, define them again before continuing.
 
 ### Task 3: Explore the resource group and the role assignment
 
@@ -376,7 +367,7 @@ The exercise consists of the following tasks:
 6. Note that the default rule **DenyAllInBound** (priority 65500) blocks every other inbound connection from the internet.
 
     > [!IMPORTANT]
-    > Never allow SSH from **Any** or **Internet**. Open ports are scanned within minutes of their creation.
+    > Never allow SSH from **Any** or **Internet**.
 
 ## Exercise 3: Create a storage account
 
@@ -487,9 +478,6 @@ The exercise consists of the following tasks:
       --query "[].{name:name, size:properties.contentLength}" --output table
     ```
 
-    > [!NOTE]
-    > With **--auth-mode login**, the Azure CLI uses Microsoft Entra ID for data access, which requires a data role such as **Storage Blob Data Contributor**. The lab identities have no data roles, so the lab uses the account key.
-
 ## Exercise 4: Create a Linux virtual machine with an SSH key
 
 The exercise consists of the following tasks:
@@ -521,9 +509,6 @@ The exercise consists of the following tasks:
     New-Item -ItemType Directory -Force -Path "$HOME/.ssh" | Out-Null
     ssh-keygen -t ed25519 -f "$HOME/.ssh/lab03_ed25519" -C "$STUDENT-lab03"
     ```
-
-    > [!NOTE]
-    > PowerShell does not expand **~** in the arguments of external programs such as **ssh-keygen**, so the PowerShell commands use **$HOME** instead.
 
 3. Display the public key. This is the only part of the key pair that is given to the virtual machine:
 
@@ -619,124 +604,8 @@ The exercise consists of the following tasks:
 
 5. Note that one command created four resources: the virtual machine, the network interface, the public IP address, and the OS disk.
 
-## Exercise 5: Sign in as the service principal
 
-The exercise consists of the following tasks:
-
-- Task 1: Sign in with the service principal
-- Task 2: Test the limits of the role assignment
-
-### Task 1: Sign in with the service principal
-
-1. Read the service principal values into variables. When prompted, enter the client ID (`<client-id>`), the client secret (`<client-secret>`), and the tenant ID (`<tenant-id>`) from the lab values. The secret is read without showing it on the screen:
-
-    **Bash**
-
-    ```bash
-    read -r -p "AZURE_CLIENT_ID (<client-id>): " AZURE_CLIENT_ID
-    read -r -s -p "AZURE_CLIENT_SECRET (<client-secret>): " AZURE_CLIENT_SECRET; echo
-    read -r -p "AZURE_TENANT_ID (<tenant-id>): " AZURE_TENANT_ID
-    ```
-
-    **PowerShell**
-
-    ```powershell
-    $AZURE_CLIENT_ID     = Read-Host "AZURE_CLIENT_ID (<client-id>)"
-    $SecureSecret        = Read-Host "AZURE_CLIENT_SECRET (<client-secret>)" -AsSecureString
-    $AZURE_CLIENT_SECRET = [System.Net.NetworkCredential]::new("", $SecureSecret).Password
-    $AZURE_TENANT_ID     = Read-Host "AZURE_TENANT_ID (<tenant-id>)"
-    ```
-
-2. Sign in as the service principal. The option **--username** takes the client ID, and **--password** takes the client secret:
-
-    **Bash**
-
-    ```bash
-    az login --service-principal --username "$AZURE_CLIENT_ID" \
-      --password "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
-    ```
-
-    **PowerShell**
-
-    ```powershell
-    az login --service-principal --username $AZURE_CLIENT_ID `
-      --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
-    ```
-
-3. Verify the signed-in identity and list the resources of the resource group:
-
-    **Bash**
-
-    ```bash
-    az account show --query "{subscription:name, user:user.name, type:user.type}" --output table
-    az resource list --resource-group "$RG" --output table
-    ```
-
-    **PowerShell**
-
-    ```powershell
-    az account show --query "{subscription:name, user:user.name, type:user.type}" --output table
-    az resource list --resource-group $RG --output table
-    ```
-
-    Note that **user.name** shows the client ID of the service principal and **user.type** shows **servicePrincipal**.
-
-### Task 2: Test the limits of the role assignment
-
-1. Try to create a new resource group. The command fails with **AuthorizationFailed**, because the service principal has no permission at the subscription scope:
-
-    **Bash**
-
-    ```bash
-    az group create --name "rg-${STUDENT}-test" --location "$LOCATION"
-    ```
-
-    **PowerShell**
-
-    ```powershell
-    az group create --name "rg-$STUDENT-test" --location $LOCATION
-    ```
-
-2. Try to assign the **Reader** role on the resource group to the service principal itself, identified by its client ID (`<client-id>`). The command fails, because the **Contributor** role does not allow role assignments:
-
-    **Bash**
-
-    ```bash
-    az role assignment create --assignee "$AZURE_CLIENT_ID" --role Reader --resource-group "$RG"
-    ```
-
-    **PowerShell**
-
-    ```powershell
-    az role assignment create --assignee $AZURE_CLIENT_ID --role Reader --resource-group $RG
-    ```
-
-3. Sign out of the service principal and sign in again with the user account. This step is the same in both shells:
-
-    ```bash
-    az logout
-    az login
-    az account set --subscription "<subscription-id>"
-    ```
-
-    > [!NOTE]
-    > This is the identity that the pipelines use from Lab 06 onward. Its secret is stored only as a GitHub secret or in an Azure DevOps service connection, never in a file of a repository.
-
-4. Remove the client secret from the terminal session:
-
-    **Bash**
-
-    ```bash
-    unset AZURE_CLIENT_SECRET
-    ```
-
-    **PowerShell**
-
-    ```powershell
-    Remove-Variable AZURE_CLIENT_SECRET, SecureSecret
-    ```
-
-## Exercise 6: Clean up the resources
+## Exercise 5: Clean up the resources
 
 The exercise consists of the following tasks:
 
