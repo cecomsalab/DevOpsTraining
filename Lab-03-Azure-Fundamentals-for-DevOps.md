@@ -38,9 +38,6 @@ The **az** commands are the same in every shell. Variables, line continuation, a
 | Home folder in a path | `~/.ssh/file` | `"$HOME/.ssh/file"` |
 | Display a file | `cat file` | `Get-Content file` |
 
-> [!IMPORTANT]
-> Nothing can follow the line continuation character, not even a space. If a multi-line command fails with an error about a missing argument, check the end of each line.
-
 ## Exercise 1: Sign in and explore the lab environment
 
 The exercise consists of the following tasks:
