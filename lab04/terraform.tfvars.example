@@ -1,0 +1,3 @@
+# Copy this file to terraform.tfvars and replace the values.
+resource_group_name = "rg-<student>-usa"
+prefix              = "<student>"
