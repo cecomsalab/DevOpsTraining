@@ -73,11 +73,16 @@ The exercise consists of the following tasks:
 
 ### Task 2: Sign in and select the subscription
 
-1. Run the following command and complete the sign-in with the course user account in the browser window that opens:
+1. Run the following command and complete the sign-in with the provided credentials:
 
     ```bash
-    az login
+    az login --service-principal \
+      --tenant <tenantId> \
+      --subscription <subscriptionId> \
+      --username <clientId> \
+      --password <clientSecret>
     ```
+
 
 2. If the account has access to several subscriptions, the command lists them. Select the course subscription by number, or run the following command with the subscription ID from the lab values:
 

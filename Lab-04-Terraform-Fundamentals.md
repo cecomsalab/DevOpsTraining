@@ -94,10 +94,15 @@ The exercise consists of the following tasks:
 
 1. In Visual Studio Code, select **Terminal** > **New Terminal**. On Windows, select **PowerShell** or **Git Bash** as the terminal profile from the drop-down list next to the **+** icon. On macOS, the default **zsh** or **bash** terminal works with the Bash commands.
 
-2. Sign in with the course user account and select the course subscription. These commands are the same in both shells:
+2. Sign in with the provided credentials. These commands are the same in both shells:
 
     ```bash
-    az login
+    az login --service-principal \
+      --tenant <tenantId> \
+      --subscription <subscriptionId> \
+      --username <clientId> \
+      --password <clientSecret>
+
     az account set --subscription "<subscription-id>"
     ```
 
