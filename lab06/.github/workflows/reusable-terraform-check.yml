@@ -1,0 +1,36 @@
+# Step 7a: a reusable workflow. It runs only when another workflow calls it.
+name: Reusable Terraform check
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Folder that contains the Terraform code
+        type: string
+        required: true
+      terraform-version:
+        type: string
+        default: "1.17.0"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      # No backend and no Azure sign-in: validation only reads the code.
+      - name: Init without backend
+        run: terraform init -backend=false -input=false
+
+      - name: Validate
+        run: terraform validate

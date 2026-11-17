@@ -1,0 +1,20 @@
+{
+  "course": "DevOps with GitHub and Azure",
+  "modules": 10,
+  "active": true,
+  "start_date": "2026-11-02",
+  "lab_environment": {
+    "cloud": "Azure",
+    "location": "southcentralus",
+    "resource_group": "rg-student01-usa"
+  },
+  "tools": ["git", "terraform", "azure-cli"],
+  "members": [
+    { "name": "Ana", "role": "networking" },
+    { "name": "Luis", "role": "storage" }
+  ],
+  "phases": ["foundations", "infrastructure-as-code", "automation"],
+  "owner": { "name": "Josue", "team": "training" },
+  "literal_block": "Line one keeps its line break.\nLine two keeps its line break.\n",
+  "folded_block": "These lines are folded into one single line.\n"
+}

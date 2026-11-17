@@ -1,0 +1,10 @@
+# Local Terraform folders and files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+# Variable files can contain secrets
+terraform.tfvars
+*.auto.tfvars

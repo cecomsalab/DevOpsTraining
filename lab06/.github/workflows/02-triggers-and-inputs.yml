@@ -1,0 +1,44 @@
+# Step 2: events (triggers), manual inputs, and contexts.
+name: 02 Triggers and inputs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "yaml-practice/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, test, prod]
+        default: dev
+      dry_run:
+        description: Only print, do not change anything
+        type: boolean
+        default: true
+
+jobs:
+  show-context:
+    runs-on: ubuntu-latest
+    steps:
+      # Contexts are read with ${{ }} and passed to the script with env.
+      - name: Show the event information
+        env:
+          EVENT: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          REF: ${{ github.ref_name }}
+          TARGET: ${{ inputs.environment || 'not a manual run' }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          echo "Event:       $EVENT"
+          echo "Started by:  $ACTOR"
+          echo "Branch:      $REF"
+          echo "Environment: $TARGET"
+          echo "Dry run:     $DRY_RUN"
+
+      - name: Runs only for pull requests
+        if: github.event_name == 'pull_request'
+        run: echo "This step runs only on pull requests"

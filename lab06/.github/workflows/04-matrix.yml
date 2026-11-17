@@ -1,0 +1,25 @@
+# Step 4: one job definition, several runs (matrix).
+name: 04 Matrix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        terraform: ["1.15.0", "1.17.0"]
+        include:
+          - os: macos-latest
+            terraform: "1.17.0"
+    runs-on: ${{ matrix.os }}
+    name: Terraform ${{ matrix.terraform }} on ${{ matrix.os }}
+    steps:
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ matrix.terraform }}
+
+      - name: Print the version
+        run: terraform version

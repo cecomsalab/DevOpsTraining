@@ -1,0 +1,19 @@
+# Step 1: the smallest useful workflow.
+# Run it from the Actions tab with the "Run workflow" button.
+name: 01 Hello
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: echo "Hello from GitHub Actions"
+
+      - name: Show where the job runs
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Working folder: $PWD"
+          uname -a

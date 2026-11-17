@@ -1,0 +1,14 @@
+# Step 7b: call the reusable workflow for the infra folder.
+name: 07 Terraform check
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+
+jobs:
+  infra:
+    uses: ./.github/workflows/reusable-terraform-check.yml
+    with:
+      working-directory: infra

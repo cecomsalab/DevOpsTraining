@@ -1,0 +1,38 @@
+# YAML practice file. Lines that start with # are comments.
+
+# 1. Scalars: single values.
+course: DevOps with GitHub and Azure   # a string (quotes are optional)
+modules: 10                            # a number
+active: true                           # a boolean
+start_date: "2026-11-02"               # quoted so it stays a string
+
+# 2. Map (dictionary): key and value pairs, indented with spaces.
+lab_environment:
+  cloud: Azure
+  location: southcentralus
+  resource_group: rg-student01-usa
+
+# 3. List (sequence): one item per line, each item starts with "- ".
+tools:
+  - git
+  - terraform
+  - azure-cli
+
+# 4. List of maps: the most common shape in workflows (steps, jobs).
+members:
+  - name: Ana
+    role: networking
+  - name: Luis
+    role: storage
+
+# 5. Inline (flow) style: the same data in one line, like JSON.
+phases: [foundations, infrastructure-as-code, automation]
+owner: { name: Josue, team: training }
+
+# 6. Multiline strings.
+literal_block: |
+  Line one keeps its line break.
+  Line two keeps its line break.
+folded_block: >
+  These lines are folded
+  into one single line.

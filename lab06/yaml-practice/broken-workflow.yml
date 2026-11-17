@@ -1,0 +1,20 @@
+# This file has 4 mistakes. Find and fix them.
+# It is outside .github/workflows, so GitHub does not run it.
+name: broken-example
+on:
+  workflow_dispatch:
+jobs:
+  hello:
+    runs-on:ubuntu-latest
+    steps:
+    - name: Say hello
+      run: echo "Hello"
+     - name: Show the date
+      run: date
+  goodbye:
+    needs: hello
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say goodbye
+        run: echo Message: done
+        shell bash

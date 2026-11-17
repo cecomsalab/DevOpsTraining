@@ -1,0 +1,27 @@
+# Step 6: sign in to Azure with the service principal and read resources.
+# Needs the secret AZURE_CREDENTIALS (JSON from the lab setup script)
+# and the variable RESOURCE_GROUP.
+name: 06 Azure login
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  azure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Show the account and the resource group
+        env:
+          RG: ${{ vars.RESOURCE_GROUP }}
+        run: |
+          az account show --query "{subscription:name, user:user.name}" -o table
+          az group show --name "$RG" --query "{name:name, location:location}" -o table
+          az resource list --resource-group "$RG" -o table

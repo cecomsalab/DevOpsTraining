@@ -1,0 +1,19 @@
+# Fixed version of yaml-practice/broken-workflow.yml
+name: broken-example
+on:
+  workflow_dispatch:
+jobs:
+  hello:
+    runs-on: ubuntu-latest          # 1. a space is required after the colon
+    steps:
+      - name: Say hello
+        run: echo "Hello"
+      - name: Show the date         # 2. list items must line up
+        run: date
+  goodbye:
+    needs: hello
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say goodbye
+        run: 'echo "Message: done"' # 3. a colon plus space inside a value needs quotes
+        shell: bash                 # 4. every key needs a colon

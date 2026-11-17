@@ -1,0 +1,48 @@
+# Step 3: several jobs, order with needs, and job outputs.
+name: 03 Jobs and needs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create a version number
+        id: version
+        run: echo "value=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: build                     # waits for build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use the output of build
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: echo "Testing version $VERSION"
+
+  lint:
+    needs: build                     # runs in parallel with test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Linting in parallel with test"
+
+  report:
+    needs: [test, lint]              # waits for both
+    if: always()                     # runs even when a job fails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write a job summary
+        env:
+          TEST: ${{ needs.test.result }}
+          LINT: ${{ needs.lint.result }}
+        run: |
+          {
+            echo "## Results"
+            echo "- test: $TEST"
+            echo "- lint: $LINT"
+          } >> "$GITHUB_STEP_SUMMARY"
