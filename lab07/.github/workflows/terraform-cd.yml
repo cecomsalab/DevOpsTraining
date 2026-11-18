@@ -1,0 +1,113 @@
+# Lab 07: Continuous delivery for Terraform.
+# Runs when a pull request is merged into main (push to main).
+# Job 1 creates a saved plan. Job 2 waits for approval and applies that plan.
+name: terraform-cd
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_resource_group_name: ${{ vars.RESOURCE_GROUP }}
+  TF_VAR_prefix: ${{ vars.PREFIX }}
+  TF_IN_AUTOMATION: "true"
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+
+      - name: Initialize
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_ACCOUNT }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=lab07.tfstate"
+
+      # -detailed-exitcode: 0 = no changes, 1 = error, 2 = changes present.
+      - name: Plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          if [ "$code" -eq 2 ]; then
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          fi
+          terraform show -no-color tfplan >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the saved plan
+        if: steps.plan.outputs.changes == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tfplan
+          path: infra/tfplan
+          retention-days: 1
+
+  apply:
+    name: Apply
+    needs: plan
+    if: needs.plan.outputs.changes == 'true'
+    runs-on: ubuntu-latest
+    # The environment holds the approval rule (required reviewers).
+    environment: dev
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+
+      - name: Initialize
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_ACCOUNT }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=lab07.tfstate"
+
+      - name: Download the saved plan
+        uses: actions/download-artifact@v8
+        with:
+          name: tfplan
+          path: infra
+
+      # Applying a saved plan applies exactly what was reviewed.
+      - name: Apply the saved plan
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Show outputs
+        run: terraform output

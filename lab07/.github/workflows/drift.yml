@@ -1,0 +1,74 @@
+# Lab 07: Drift detection.
+# Runs every Monday at 06:00 UTC and on demand.
+# Opens an issue when the real resources no longer match the code.
+name: terraform-drift
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_resource_group_name: ${{ vars.RESOURCE_GROUP }}
+  TF_VAR_prefix: ${{ vars.PREFIX }}
+  TF_IN_AUTOMATION: "true"
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  drift:
+    name: Detect drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+
+      - name: Initialize
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_ACCOUNT }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=lab07.tfstate"
+
+      - name: Plan with detailed exit code
+        id: plan
+        run: |
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode > drift.txt
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -eq 1 ]; then cat drift.txt; exit 1; fi
+
+      - name: Open an issue when drift is found
+        if: steps.plan.outputs.code == '2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Drift detected by run ${{ github.run_id }}."
+            echo ""
+            echo '```text'
+            head -c 60000 drift.txt
+            echo '```'
+          } > issue.md
+          gh issue create --title "Terraform drift detected" --body-file issue.md

@@ -1,0 +1,84 @@
+# Lab 07: Continuous integration for Terraform.
+# Runs on every pull request that changes the infra folder.
+# Result: format check, validation, and a plan posted as a PR comment.
+name: terraform-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-ci.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# Only one Terraform run at a time touches the state file.
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+env:
+  # Service principal credentials read by the azurerm provider and backend.
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  # Terraform input variables (TF_VAR_<name>).
+  TF_VAR_resource_group_name: ${{ vars.RESOURCE_GROUP }}
+  TF_VAR_prefix: ${{ vars.PREFIX }}
+  TF_IN_AUTOMATION: "true"
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  plan:
+    name: Validate and plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize with the remote backend
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_ACCOUNT }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=lab07.tfstate"
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        run: |
+          terraform plan -input=false -no-color -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+
+      - name: Comment the plan on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Branch names are user input: pass them through env, never inline.
+          BRANCH: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "### Terraform plan for \`$BRANCH\`"
+            echo ""
+            echo '```text'
+            head -c 60000 plan.txt
+            echo '```'
+          } > comment.md
+          gh pr comment "$PR_NUMBER" --body-file comment.md

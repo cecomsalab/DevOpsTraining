@@ -1,0 +1,56 @@
+# Lab 07: Destroy the lab resources (manual run only).
+# Type "destroy" in the confirm box to run it.
+name: terraform-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to remove all lab 07 resources'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_resource_group_name: ${{ vars.RESOURCE_GROUP }}
+  TF_VAR_prefix: ${{ vars.PREFIX }}
+  TF_IN_AUTOMATION: "true"
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  destroy:
+    name: Destroy
+    if: inputs.confirm == 'destroy'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+
+      - name: Initialize
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_ACCOUNT }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=lab07.tfstate"
+
+      - name: Destroy
+        run: terraform destroy -input=false -auto-approve
